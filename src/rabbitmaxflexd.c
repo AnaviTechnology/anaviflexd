@@ -234,7 +234,11 @@ int main(int argc, char* argv[])
 	if ( 0 > sensorHumidity )
 	{
 		fprintf(stderr, "ERROR: Unable to access RabbitMax humidity sensor: %s\n", strerror (errno));
-		exit (-1);
+	}
+	int sensorLight = wiringPiI2CSetup(BH1750_ADDR);
+	if ( 0 > sensorLight)
+	{
+		fprintf(stderr, "ERROR: Unable to access RabbitMax light sensor: %s\n", strerror (errno));
 	}
 
 	// Temperature1 before and after
@@ -243,6 +247,10 @@ int main(int argc, char* argv[])
 
 	double humidity = 0;
 	double humidityBefore = 0;
+
+	//Lux before and after
+	int lux = 0;
+	int luxBefore = 0;
 	
 	deliveredtoken = 0;
 
@@ -253,26 +261,34 @@ int main(int argc, char* argv[])
 		// TODO: BMP180 baromentric pressure
 
 		// HTU21D temperature
-		getTemperature(sensorHumidity, &temperature1);
-		if (0.5 <= delta(temperature1Before, temperature1))
+		if ( (0 == getTemperature(sensorHumidity, &temperature1)) &&
+			(0.5 <= delta(temperature1Before, temperature1)) )
 		{
 			char messageJson[100];
-			sprintf (messageJson, "{ \"temperature\": %.1f }", temperature1);
+			sprintf(messageJson, "{ \"temperature\": %.1f }", temperature1);
 			publishSensorData(TOPICTEMPERATURE1, messageJson);
 			temperature1Before = temperature1;
 		}
 
 		// HTU21D humidity
-		getHumidity(sensorHumidity, &humidity);
-		if (1 < delta(humidityBefore, humidity))
+		if ( (0 == getHumidity(sensorHumidity, &humidity) ) &&
+			(1 < delta(humidityBefore, humidity)) )
 		{
 			char messageJson[100];
-			sprintf (messageJson, "{ \"humidity\": %.0f }", humidity);
+			sprintf(messageJson, "{ \"humidity\": %.0f }", humidity);
 			publishSensorData(TOPICHUMIDITY, messageJson);
 			humidityBefore = humidity;
 		}
 
-		// TODO: BH1750 light
+		// BH1750 light
+		lux = getLux(sensorLight);
+		if ( (0 <= lux) && (lux != luxBefore) )
+		{
+			char messageJson[100];
+			sprintf(messageJson, "{ \"light\": %d }", lux);
+			publishSensorData(TOPICLIGHT, messageJson);
+			luxBefore = lux;
+		}
 
 		sleep(1);
 	}
