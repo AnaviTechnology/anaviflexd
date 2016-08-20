@@ -7,11 +7,20 @@
 #include <MQTTClient.h>
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
+#include<pthread.h>
+#include <lcd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <arpa/inet.h>
 
 #include "BMP180.h"
 #include "HTU21D.h"
 #include "BH1750.h"
 #include "json.h"
+#include "lcdControl.h"
 
 #define ADDRESS		"tcp://iot.eclipse.org:1883"
 #define CLIENTID	"RabbitMaxClient"
@@ -25,10 +34,22 @@
 
 volatile MQTTClient_deliveryToken deliveredtoken;
 
+volatile int lcdHandle;
+
 char* machineId;
 
 MQTTClient client;
 MQTTClient_deliveryToken token;
+
+pthread_t tid[2];
+
+struct sensors {
+	double temperature;
+	double humidity;
+	double temperature1;
+	double pressure;
+	int light;
+} sensors;
 
 /**
  * Retrieves  unique machine ID of the local system that is set during installation.
@@ -194,8 +215,12 @@ double delta(double before, double after)
  * Callback to handle Ctrl-C
  *
  */
-void closeMqttClient()
+void shutDownDaemon()
 {
+	pthread_kill(tid[0], 0);
+
+	lcdShowURL(lcdHandle);
+
 	// Gracefully disconnect from the MQTT broker
         MQTTClient_disconnect(client, 10000);
         MQTTClient_destroy(&client);
@@ -206,10 +231,86 @@ void closeMqttClient()
 }
 //------------------------------------------------------------------------------
 
+void initSensorsData(struct sensors data)
+{
+	data.temperature = 0;
+	data.pressure = 0;
+	data.humidity = 0;
+	data.light = 0;
+}
+//------------------------------------------------------------------------------
+
+void* controlScreen(void *arg)
+{
+	lcdHandle = lcdInit(2, 16, 4, 7, 29, 2, 3, 12, 13, 0, 0, 0, 0);
+	lcdShowURL(lcdHandle);
+	sleep(3);
+	int counter = 0;
+	while(1)
+	{
+		switch(counter)
+		{
+			case 0:
+			{
+				lcdShowIP(lcdHandle);
+			}
+			break;
+
+			case 1:
+			{
+				char line1[16] = "Temperature";
+				char line2[16];
+				sprintf(line2, "%0.1fC", sensors.temperature);
+				lcdShowText(lcdHandle, line1, line2);
+			}
+			break;
+
+			case 2:
+			{
+				char line1[16] = "Pressure";
+				char line2[16];
+				sprintf(line2, "%0.2fhPa", sensors.pressure);
+				lcdShowText(lcdHandle, line1, line2);
+			}
+			break;
+
+			case 3:
+			{
+				char line1[16] = "Humidity";
+				char line2[16];
+				sprintf(line2, "%0.0f%%", sensors.humidity);
+				lcdShowText(lcdHandle, line1, line2);
+			}
+			break;
+
+			case 4:
+			{
+				char line1[16] = "Light";
+				char line2[16];
+				sprintf(line2, "%d Lux", sensors.light);
+				lcdShowText(lcdHandle, line1, line2);
+			}
+			break;
+
+		}
+		sleep(3);
+		if (4 == counter)
+		{
+			counter = 0;
+		}
+		else
+		{
+			counter++;
+		}
+	}
+	return NULL;
+}
+//------------------------------------------------------------------------------
+
 int main(int argc, char* argv[])
 {
 	// Handle Ctrl-C
-	signal(SIGINT, closeMqttClient);
+	signal(SIGINT, shutDownDaemon);
 
 	if (0 > readMachineId())
 	{
@@ -217,6 +318,8 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 	printf("Machine ID: %s\n", machineId);
+
+	initSensorsData(sensors);
 
 	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 
@@ -232,6 +335,11 @@ int main(int argc, char* argv[])
 	{
 		printf("Failed to connect, return code %d\n", mqttConnect);
 		exit(EXIT_FAILURE);
+	}
+
+	if (0 != pthread_create(&(tid[0]), NULL, &controlScreen, NULL))
+	{
+		printf("ERROR: Unable to create thread.\n");
 	}
 
 	wiringPiSetup();
@@ -258,22 +366,17 @@ int main(int argc, char* argv[])
 	}
 
 	// Temperature before and after (from BMP180)
-	double temperature = 0;
 	double temperatureBefore = 0;
 
 	// Barometric pressure
-	double pressure = 0;
 	double pressureBefore = 0;
 
 	// Temperature1 before and after
-	double temperature1 = 0;
 	double temperature1Before = 0;
 
-	double humidity = 0;
 	double humidityBefore = 0;
 
 	// Lux before and after
-	int lux = 0;
 	int luxBefore = 0;
 	
 	deliveredtoken = 0;
@@ -281,52 +384,52 @@ int main(int argc, char* argv[])
 	while(1)
 	{
 		// BMP180 temperature
-		if ( (0 == getTemperature(sensorTemperature, &temperature)) &&
-			(0.5 <= delta(temperatureBefore, temperature)) )
+		if ( (0 == getTemperature(sensorTemperature, &sensors.temperature)) &&
+			(0.5 <= delta(temperatureBefore, sensors.temperature)) )
 		{
 			char messageJson[100];
-			sprintf(messageJson, "{ \"temperature\": %.1f }", temperature);
+			sprintf(messageJson, "{ \"temperature\": %.1f }", sensors.temperature);
 			publishSensorData(TOPICTEMPERATURE, messageJson);
-			temperatureBefore = temperature;
+			temperatureBefore = sensors.temperature;
 		}
-		// TODO: BMP180 baromentric pressure
-		if ( (0 == getPressure(sensorTemperature, &pressure)) &&
-			(1 <= delta(pressureBefore, pressure)) )
+		// BMP180 baromentric pressure
+		if ( (0 == getPressure(sensorTemperature, &sensors.pressure)) &&
+			(1 <= delta(pressureBefore, sensors.pressure)) )
 		{
 			char messageJson[100];
-			sprintf(messageJson, "{ \"pressure\": %.0f }", pressure);
+			sprintf(messageJson, "{ \"pressure\": %.0f }", sensors.pressure);
 			publishSensorData(TOPICPRESSURE, messageJson);
-			pressureBefore = pressure;
+			pressureBefore = sensors.pressure;
 		}
 
 		// HTU21D temperature
-		if ( (0 == getTemperature1(sensorHumidity, &temperature1)) &&
-			(0.5 <= delta(temperature1Before, temperature1)) )
+		if ( (0 == getTemperature1(sensorHumidity, &sensors.temperature1)) &&
+			(0.5 <= delta(temperature1Before, sensors.temperature1)) )
 		{
 			char messageJson[100];
-			sprintf(messageJson, "{ \"temperature\": %.1f }", temperature1);
+			sprintf(messageJson, "{ \"temperature\": %.1f }", sensors.temperature1);
 			publishSensorData(TOPICTEMPERATURE1, messageJson);
-			temperature1Before = temperature1;
+			temperature1Before = sensors.temperature1;
 		}
 
 		// HTU21D humidity
-		if ( (0 == getHumidity(sensorHumidity, &humidity) ) &&
-			(1 < delta(humidityBefore, humidity)) )
+		if ( (0 == getHumidity(sensorHumidity, &sensors.humidity) ) &&
+			(1 < delta(humidityBefore, sensors.humidity)) )
 		{
 			char messageJson[100];
-			sprintf(messageJson, "{ \"humidity\": %.0f }", humidity);
+			sprintf(messageJson, "{ \"humidity\": %.0f }", sensors.humidity);
 			publishSensorData(TOPICHUMIDITY, messageJson);
-			humidityBefore = humidity;
+			humidityBefore = sensors.humidity;
 		}
 
 		// BH1750 light
-		lux = getLux(sensorLight);
-		if ( (0 <= lux) && (lux != luxBefore) )
+		sensors.light = getLux(sensorLight);
+		if ( (0 <= sensors.light) && (sensors.light != luxBefore) )
 		{
 			char messageJson[100];
-			sprintf(messageJson, "{ \"light\": %d }", lux);
+			sprintf(messageJson, "{ \"light\": %d }", sensors.light);
 			publishSensorData(TOPICLIGHT, messageJson);
-			luxBefore = lux;
+			luxBefore = sensors.light;
 		}
 
 		sleep(1);
