@@ -135,13 +135,16 @@ void connlost(void *context, char *cause)
  */
 void publish(char* topic, char* message, int qos, int retain)
 {
-	// MQTT topic's 1st level is the machine ID
-	char* mqttTopic;
 	// Make space for the machine id, slash and the topic
-	mqttTopic = malloc(strlen(machineId) + 1 + strlen(topic));
-	strcpy(mqttTopic, machineId);
-	strcat(mqttTopic, "/");
-	strcat(mqttTopic, topic);
+	size_t lenMachine = strlen(machineId);
+	size_t lenTopic = strlen(topic);
+	char *mqttTopic = (char*) malloc(lenMachine + 3 + lenTopic);
+	// MQTT topic's 1st level is the machine ID
+	memcpy(mqttTopic, machineId, lenMachine);
+	// Separate levels
+	memcpy(mqttTopic+lenMachine, "/", 2);
+	// Add next levels in MQTT topic
+	memcpy(mqttTopic+lenMachine+1, topic, lenTopic+1);
 
 	MQTTClient_message pubmsg = MQTTClient_message_initializer;
 	pubmsg.payload = message;
@@ -164,9 +167,11 @@ void publish(char* topic, char* message, int qos, int retain)
  */
 void publishSensorData(char* topic, char* json)
 {
-	char* messagePayload = json_stringify(json_decode(json), "\t");
+	JsonNode* node = json_decode(json);
+	char* messagePayload = json_stringify(node, "\t");
 	publish(topic, messagePayload, 1, 1);
 	free(messagePayload);
+	json_delete(node);
 }
 //------------------------------------------------------------------------------
 
