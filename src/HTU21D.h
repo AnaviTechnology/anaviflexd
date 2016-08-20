@@ -7,7 +7,7 @@
 #define   HTU21D_HUMID    0xF5
 
 // Get temperature
-int getTemperature(int fd, double *temperature);
+int getTemperature1(int fd, double *temperature);
 
 // Get humidity
 int getHumidity(int fd, double *humidity);

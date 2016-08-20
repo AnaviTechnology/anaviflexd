@@ -235,16 +235,35 @@ int main(int argc, char* argv[])
 	}
 
 	wiringPiSetup();
+	int sensorTemperature = wiringPiI2CSetup(BMP180_I2CADDR);
+	if ( 0 > sensorTemperature )
+	{
+		fprintf(stderr, "ERROR: Unable to access RabbitMax temperature sensor: %s\n", strerror (errno));
+	}
+	if (0 > begin(sensorTemperature))
+	{
+		fprintf(stderr, "ERROR: RabbitMax temperature sensor not found.\n");
+	}
+
 	int sensorHumidity = wiringPiI2CSetup(HTU21D_I2C_ADDR);
 	if ( 0 > sensorHumidity )
 	{
 		fprintf(stderr, "ERROR: Unable to access RabbitMax humidity sensor: %s\n", strerror (errno));
 	}
+
 	int sensorLight = wiringPiI2CSetup(BH1750_ADDR);
 	if ( 0 > sensorLight)
 	{
 		fprintf(stderr, "ERROR: Unable to access RabbitMax light sensor: %s\n", strerror (errno));
 	}
+
+	// Temperature before and after (from BMP180)
+	double temperature = 0;
+	double temperatureBefore = 0;
+
+	// Barometric pressure
+	double pressure = 0;
+	double pressureBefore = 0;
 
 	// Temperature1 before and after
 	double temperature1 = 0;
@@ -253,7 +272,7 @@ int main(int argc, char* argv[])
 	double humidity = 0;
 	double humidityBefore = 0;
 
-	//Lux before and after
+	// Lux before and after
 	int lux = 0;
 	int luxBefore = 0;
 	
@@ -261,12 +280,27 @@ int main(int argc, char* argv[])
 
 	while(1)
 	{
-		// TODO: BMP180 temperature
-
+		// BMP180 temperature
+		if ( (0 == getTemperature(sensorTemperature, &temperature)) &&
+			(0.5 <= delta(temperatureBefore, temperature)) )
+		{
+			char messageJson[100];
+			sprintf(messageJson, "{ \"temperature\": %.1f }", temperature);
+			publishSensorData(TOPICTEMPERATURE, messageJson);
+			temperatureBefore = temperature;
+		}
 		// TODO: BMP180 baromentric pressure
+		if ( (0 == getPressure(sensorTemperature, &pressure)) &&
+			(1 <= delta(pressureBefore, pressure)) )
+		{
+			char messageJson[100];
+			sprintf(messageJson, "{ \"pressure\": %.0f }", pressure);
+			publishSensorData(TOPICPRESSURE, messageJson);
+			pressureBefore = pressure;
+		}
 
 		// HTU21D temperature
-		if ( (0 == getTemperature(sensorHumidity, &temperature1)) &&
+		if ( (0 == getTemperature1(sensorHumidity, &temperature1)) &&
 			(0.5 <= delta(temperature1Before, temperature1)) )
 		{
 			char messageJson[100];

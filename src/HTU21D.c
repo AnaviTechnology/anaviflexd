@@ -7,7 +7,7 @@
 #include "HTU21D.h"
 
 // Get temperature
-int getTemperature(int fd, double *temperature)
+int getTemperature1(int fd, double *temperature)
 {
 	unsigned char buf [4];
 	if (0 < wiringPiI2CWrite(fd, HTU21D_TEMP))
