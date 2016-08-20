@@ -365,19 +365,9 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "ERROR: Unable to access RabbitMax light sensor: %s\n", strerror (errno));
 	}
 
-	// Temperature before and after (from BMP180)
-	double temperatureBefore = 0;
-
-	// Barometric pressure
-	double pressureBefore = 0;
-
-	// Temperature1 before and after
-	double temperature1Before = 0;
-
-	double humidityBefore = 0;
-
-	// Lux before and after
-	int luxBefore = 0;
+	// Store old sensor data
+	struct sensors before;
+	initSensorsData(before);
 	
 	deliveredtoken = 0;
 
@@ -385,51 +375,51 @@ int main(int argc, char* argv[])
 	{
 		// BMP180 temperature
 		if ( (0 == getTemperature(sensorTemperature, &sensors.temperature)) &&
-			(0.5 <= delta(temperatureBefore, sensors.temperature)) )
+			(0.5 <= delta(before.temperature, sensors.temperature)) )
 		{
 			char messageJson[100];
 			sprintf(messageJson, "{ \"temperature\": %.1f }", sensors.temperature);
 			publishSensorData(TOPICTEMPERATURE, messageJson);
-			temperatureBefore = sensors.temperature;
+			before.temperature = sensors.temperature;
 		}
 		// BMP180 baromentric pressure
 		if ( (0 == getPressure(sensorTemperature, &sensors.pressure)) &&
-			(1 <= delta(pressureBefore, sensors.pressure)) )
+			(1 <= delta(before.pressure, sensors.pressure)) )
 		{
 			char messageJson[100];
 			sprintf(messageJson, "{ \"pressure\": %.0f }", sensors.pressure);
 			publishSensorData(TOPICPRESSURE, messageJson);
-			pressureBefore = sensors.pressure;
+			before.pressure = sensors.pressure;
 		}
 
 		// HTU21D temperature
 		if ( (0 == getTemperature1(sensorHumidity, &sensors.temperature1)) &&
-			(0.5 <= delta(temperature1Before, sensors.temperature1)) )
+			(0.5 <= delta(before.temperature1, sensors.temperature1)) )
 		{
 			char messageJson[100];
 			sprintf(messageJson, "{ \"temperature\": %.1f }", sensors.temperature1);
 			publishSensorData(TOPICTEMPERATURE1, messageJson);
-			temperature1Before = sensors.temperature1;
+			before.temperature1 = sensors.temperature1;
 		}
 
 		// HTU21D humidity
 		if ( (0 == getHumidity(sensorHumidity, &sensors.humidity) ) &&
-			(1 < delta(humidityBefore, sensors.humidity)) )
+			(1 < delta(before.humidity, sensors.humidity)) )
 		{
 			char messageJson[100];
 			sprintf(messageJson, "{ \"humidity\": %.0f }", sensors.humidity);
 			publishSensorData(TOPICHUMIDITY, messageJson);
-			humidityBefore = sensors.humidity;
+			before.humidity = sensors.humidity;
 		}
 
 		// BH1750 light
 		sensors.light = getLux(sensorLight);
-		if ( (0 <= sensors.light) && (sensors.light != luxBefore) )
+		if ( (0 <= sensors.light) && (sensors.light != before.light) )
 		{
 			char messageJson[100];
 			sprintf(messageJson, "{ \"light\": %d }", sensors.light);
 			publishSensorData(TOPICLIGHT, messageJson);
-			luxBefore = sensors.light;
+			before.light = sensors.light;
 		}
 
 		sleep(1);
