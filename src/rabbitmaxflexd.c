@@ -28,7 +28,7 @@
 #define TOPICHUMIDITY "sensors/humidity"
 #define TOPICLIGHT "sensors/light"
 
-pthread_t tid[2];
+pthread_t tid;
 
 struct sensors {
 	double temperature;
@@ -59,7 +59,7 @@ double delta(double before, double after)
  */
 void shutDownDaemon()
 {
-	pthread_kill(tid[0], 0);
+	pthread_kill(tid, 0);
 
 	lcdShowURL(lcdHandle);
 	mqttDisconnect();
@@ -176,9 +176,9 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if (0 != pthread_create(&(tid[0]), NULL, &controlScreen, NULL))
+	if (0 != pthread_create(&(tid), NULL, &controlScreen, NULL))
 	{
-		printf("ERROR: Unable to create thread.\n");
+		printf("ERROR: Unable to create thread for handling LCD display.\n");
 	}
 
 	wiringPiSetup();
