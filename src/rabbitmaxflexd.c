@@ -197,6 +197,17 @@ void publishSensorData(char* topic, char* json)
 //------------------------------------------------------------------------------
 
 /**
+ * Gracefully disconnect from the MQTT broker
+ *
+ */
+void mqttDisconnect()
+{
+	MQTTClient_disconnect(client, 10000);
+	MQTTClient_destroy(&client);
+}
+//------------------------------------------------------------------------------
+
+/**
  * Calculate delta (aka difference) between an old and new data
  *
  * @param before old data
@@ -220,10 +231,7 @@ void shutDownDaemon()
 	pthread_kill(tid[0], 0);
 
 	lcdShowURL(lcdHandle);
-
-	// Gracefully disconnect from the MQTT broker
-        MQTTClient_disconnect(client, 10000);
-        MQTTClient_destroy(&client);
+	mqttDisconnect();
 
 	printf("\nShutting down the MQTT client...\n");
 
