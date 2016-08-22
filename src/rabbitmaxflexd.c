@@ -220,10 +220,6 @@ int main(int argc, char* argv[])
 	{
 		fprintf(stderr, "ERROR: Unable to access RabbitMax temperature sensor: %s\n", strerror (errno));
 	}
-	if (0 > begin(sensorTemperature))
-	{
-		fprintf(stderr, "ERROR: RabbitMax temperature sensor not found.\n");
-	}
 
 	int sensorHumidity = wiringPiI2CSetup(HTU21D_I2C_ADDR);
 	if ( 0 > sensorHumidity )
@@ -245,6 +241,12 @@ int main(int argc, char* argv[])
 
 	while(1)
 	{
+		// Calibrate BMP180
+		if (0 == status.temperature)
+		{
+			begin(sensorTemperature);
+		}
+
 		// BMP180 temperature
 		if (0 == getTemperature(sensorTemperature, &sensors.temperature))
 		{
