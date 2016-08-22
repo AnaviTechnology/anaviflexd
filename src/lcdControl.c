@@ -8,24 +8,26 @@
 #include <net/if.h>
 #include <arpa/inet.h>
 
-void fillLine(char line[16])
+#include "lcdControl.h"
+
+void fillLine(char line[17])
 {
 	size_t length = strlen(line);
-	for(int position=length; position < 15; position++)
+	for(int position=length; position < 16; position++)
 	{
 		line[position] = ' ';
 	}
-	line[15] = '\0';
+	line[16] = '\0';
 }
 //------------------------------------------------------------------------------
 
 void lcdShowURL(int lcdHandle)
 {
-	char line1[16] = "RabbitMax";
+	char line1[17] = "RabbitMax";
 	fillLine(line1);
 	lcdPosition(lcdHandle, 0, 0);
 	lcdPuts(lcdHandle, line1);
-	char line2[16] = "rabbitmax.com";
+	char line2[17] = "rabbitmax.com";
 	fillLine(line2);
 	lcdPosition(lcdHandle, 0, 1);
 	lcdPuts(lcdHandle, line2);
@@ -41,19 +43,19 @@ void lcdShowIP(int lcdHandle)
 	ioctl(fd, SIOCGIFADDR, &ifr);
 	close(fd);
 	lcdPosition(lcdHandle, 0, 0);
-	char line1[16] = "eth0 IPv4";
+	char line1[17] = "eth0 IPv4";
 	fillLine(line1);
 	lcdPuts(lcdHandle, line1);
 	lcdPosition (lcdHandle, 0, 1);
-	char line2[16];
+	char line2[17];
 	strncpy(line2, inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr), sizeof line2 - 1);
-	line2[15] = '\0';
+	line2[16] = '\0';
 	fillLine(line2);
 	lcdPuts(lcdHandle, line2);
 }
 //------------------------------------------------------------------------------
 
-void lcdShowText(int lcdHandle, char line1[16], char line2[16])
+void lcdShowText(int lcdHandle, char line1[17], char line2[17])
 {
 	lcdPosition(lcdHandle, 0, 0);
 	fillLine(line1);
