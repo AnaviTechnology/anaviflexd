@@ -6,6 +6,6 @@
 //Delay getLux function
 #define LUXDELAY 500
 
-int getLux(int fd);
+int getLux(int fd, int* lux);
 
 #endif

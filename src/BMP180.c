@@ -46,10 +46,14 @@ int computeB5(unsigned int UT)
 
 unsigned int readRawTemperature(int fd)
 {
-	wiringPiI2CWriteReg8(fd, BMP180_CONTROL, BMP180_READTEMPCMD);
+	if (0 > wiringPiI2CWriteReg8(fd, BMP180_CONTROL, BMP180_READTEMPCMD))
+	{
+		return 0;
+	}
 	// Wait at least 4.5ms
 	delay(5);
 	return (unsigned int)i2cReadInt(fd, BMP180_TEMPDATA);
+	//return 0;
 }
 
 uint32_t readRawPressure(int fd)
@@ -87,6 +91,10 @@ int32_t readPressure(int fd)
 	uint32_t B4, B7;
 
 	UT = readRawTemperature(fd);
+	if (0 == UT)
+	{
+		return 0;
+	}
 	UP = readRawPressure(fd);
 
 	B5 = computeB5(UT);
@@ -122,7 +130,12 @@ int32_t readPressure(int fd)
 
 int getPressure(int fd, double* pressure)
 {
-	*pressure = (double) readPressure(fd) / 100;
+	int32_t buf = readPressure(fd);
+	if (0 == buf)
+	{
+		return -1;
+	}
+	*pressure = (double) buf / 100;
 	return 0;
 }
 
@@ -135,6 +148,10 @@ int32_t readSealevelPressure(int fd, float altitude_meters)
 int getTemperature(int fd, double* temperature)
 {
 	unsigned int UT = readRawTemperature(fd);
+	if (0 == UT)
+	{
+		return -1;
+	}
 	int compensate = computeB5(UT);
 	int rawTemperature = ((compensate + 8)>>4);
 	*temperature = ((double)rawTemperature)/10;
