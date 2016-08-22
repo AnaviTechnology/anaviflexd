@@ -280,23 +280,37 @@ int main(int argc, char* argv[])
 		}
 
 		// HTU21D temperature
-		if ( (0 == getTemperature1(sensorHumidity, &sensors.temperature1)) &&
-			(0.5 <= delta(before.temperature1, sensors.temperature1)) )
+		if (0 == getTemperature1(sensorHumidity, &sensors.temperature1))
 		{
-			char messageJson[100];
-			sprintf(messageJson, "{ \"temperature\": %.1f }", sensors.temperature1);
-			publishSensorData(TOPICTEMPERATURE1, messageJson);
-			before.temperature1 = sensors.temperature1;
+			status.temperature1 = 1;
+			if (0.5 <= delta(before.temperature1, sensors.temperature1))
+			{
+				char messageJson[100];
+				sprintf(messageJson, "{ \"temperature\": %.1f }", sensors.temperature1);
+				publishSensorData(TOPICTEMPERATURE1, messageJson);
+				before.temperature1 = sensors.temperature1;
+			}
+		}
+		else
+		{
+			status.temperature1 = 0;
 		}
 
 		// HTU21D humidity
-		if ( (0 == getHumidity(sensorHumidity, &sensors.humidity) ) &&
-			(1 < delta(before.humidity, sensors.humidity)) )
+		if (0 == getHumidity(sensorHumidity, &sensors.humidity))
 		{
-			char messageJson[100];
-			sprintf(messageJson, "{ \"humidity\": %.0f }", sensors.humidity);
-			publishSensorData(TOPICHUMIDITY, messageJson);
-			before.humidity = sensors.humidity;
+			status.humidity = 1;
+			if (1 < delta(before.humidity, sensors.humidity))
+			{
+				char messageJson[100];
+				sprintf(messageJson, "{ \"humidity\": %.0f }", sensors.humidity);
+				publishSensorData(TOPICHUMIDITY, messageJson);
+				before.humidity = sensors.humidity;
+			}
+		}
+		else
+		{
+			status.humidity = 0;
 		}
 
 		// BH1750 light
