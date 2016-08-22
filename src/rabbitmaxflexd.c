@@ -17,16 +17,21 @@
 #include "lcdControl.h"
 #include "machineId.h"
 #include "connectivity.h"
+#include "configuration.h"
 
+#define CONFIGFILE 	"/etc/rabbitmaxflex.ini"
+
+// Default configuratons:
 #define ADDRESS		"tcp://iot.eclipse.org:1883"
 #define CLIENTID	"RabbitMaxClient"
-#define TIMEOUT		10000L
 
 #define TOPICTEMPERATURE "sensors/temperature"
 #define TOPICPRESSURE "sensors/pressure"
 #define TOPICTEMPERATURE1 "sensors/temperature1"
 #define TOPICHUMIDITY "sensors/humidity"
 #define TOPICLIGHT "sensors/light"
+
+#define MSGNOSENSOR "Sensor not found"
 
 pthread_t tid;
 
@@ -36,7 +41,7 @@ struct sensors {
 	double temperature1;
 	double pressure;
 	int light;
-} sensors;
+} sensors, status;
 
 /**
  * Calculate delta (aka difference) between an old and new data
@@ -97,36 +102,48 @@ void* controlScreen(void *arg)
 
 			case 1:
 			{
-				char line1[16] = "Temperature";
-				char line2[16];
-				sprintf(line2, "%0.1fC", sensors.temperature);
+				char line1[17] = "Temperature";
+				char line2[17] = MSGNOSENSOR;
+				if (1 == status.temperature)
+				{
+					sprintf(line2, "%0.1fC", sensors.temperature);
+				}
 				lcdShowText(lcdHandle, line1, line2);
 			}
 			break;
 
 			case 2:
 			{
-				char line1[16] = "Pressure";
-				char line2[16];
-				sprintf(line2, "%0.2fhPa", sensors.pressure);
+				char line1[17] = "Pressure";
+				char line2[17] = MSGNOSENSOR;
+				if (1 == status.pressure)
+				{
+					sprintf(line2, "%0.2fhPa", sensors.pressure);
+				}
 				lcdShowText(lcdHandle, line1, line2);
 			}
 			break;
 
 			case 3:
 			{
-				char line1[16] = "Humidity";
-				char line2[16];
-				sprintf(line2, "%0.0f%%", sensors.humidity);
+				char line1[17] = "Humidity";
+				char line2[17] = MSGNOSENSOR;
+				if (1 == status.humidity)
+				{
+					sprintf(line2, "%0.0f%%", sensors.humidity);
+				}
 				lcdShowText(lcdHandle, line1, line2);
 			}
 			break;
 
 			case 4:
 			{
-				char line1[16] = "Light";
-				char line2[16];
-				sprintf(line2, "%d Lux", sensors.light);
+				char line1[17] = "Light";
+				char line2[17] = MSGNOSENSOR;
+				if (1 == status.light)
+				{
+					sprintf(line2, "%d Lux", sensors.light);
+				}
 				lcdShowText(lcdHandle, line1, line2);
 			}
 			break;
@@ -158,11 +175,26 @@ int main(int argc, char* argv[])
 	}
 	printf("Machine ID: %s\n", machineId);
 
+	configuration config;
+	if (0 > ini_parse(CONFIGFILE, iniConfigParser, &config))
+	{
+		printf("ERROR: Cannot open '%s'. Loading default configrations...\n", CONFIGFILE);
+		config.address = ADDRESS;
+		config.clientId =  CLIENTID;
+	}
+	printf("===CONFIGURATIONS===\n");
+	printf("MQTT address: %s\n", config.address);
+	printf("MQTT client ID: %s\n", config.clientId);
+	printf("====================\n");
+
 	initSensorsData(sensors);
+	// Data structure to store status of the "plug and play" sensors
+	// 0 if the sensor is not available, 1 if it is available
+	initSensorsData(status);
 
 	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 
-	MQTTClient_create(&client, ADDRESS, CLIENTID,
+	MQTTClient_create(&client, config.address, config.clientId,
 	MQTTCLIENT_PERSISTENCE_NONE, NULL);
 	conn_opts.keepAliveInterval = 20;
 	conn_opts.cleansession = 1;
@@ -176,12 +208,13 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	wiringPiSetup();
+
 	if (0 != pthread_create(&(tid), NULL, &controlScreen, NULL))
 	{
 		printf("ERROR: Unable to create thread for handling LCD display.\n");
 	}
 
-	wiringPiSetup();
 	int sensorTemperature = wiringPiI2CSetup(BMP180_I2CADDR);
 	if ( 0 > sensorTemperature )
 	{
@@ -213,22 +246,37 @@ int main(int argc, char* argv[])
 	while(1)
 	{
 		// BMP180 temperature
-		if ( (0 == getTemperature(sensorTemperature, &sensors.temperature)) &&
-			(0.5 <= delta(before.temperature, sensors.temperature)) )
+		if (0 == getTemperature(sensorTemperature, &sensors.temperature))
 		{
-			char messageJson[100];
-			sprintf(messageJson, "{ \"temperature\": %.1f }", sensors.temperature);
-			publishSensorData(TOPICTEMPERATURE, messageJson);
-			before.temperature = sensors.temperature;
+			status.temperature = 1;
+			if (0.5 <= delta(before.temperature, sensors.temperature))
+			{
+				char messageJson[100];
+				sprintf(messageJson, "{ \"temperature\": %.1f }", sensors.temperature);
+				publishSensorData(TOPICTEMPERATURE, messageJson);
+				before.temperature = sensors.temperature;
+			}
 		}
-		// BMP180 baromentric pressure
-		if ( (0 == getPressure(sensorTemperature, &sensors.pressure)) &&
-			(1 <= delta(before.pressure, sensors.pressure)) )
+		else
 		{
-			char messageJson[100];
-			sprintf(messageJson, "{ \"pressure\": %.0f }", sensors.pressure);
-			publishSensorData(TOPICPRESSURE, messageJson);
-			before.pressure = sensors.pressure;
+			status.temperature = 0;
+		}
+
+		// BMP180 baromentric pressure
+		if (0 == getPressure(sensorTemperature, &sensors.pressure))
+		{
+			status.pressure = 1;
+			if (1 <= delta(before.pressure, sensors.pressure))
+			{
+				char messageJson[100];
+				sprintf(messageJson, "{ \"pressure\": %.0f }", sensors.pressure);
+				publishSensorData(TOPICPRESSURE, messageJson);
+				before.pressure = sensors.pressure;
+			}
+		}
+		else
+		{
+			status.pressure = 0;
 		}
 
 		// HTU21D temperature
@@ -252,13 +300,20 @@ int main(int argc, char* argv[])
 		}
 
 		// BH1750 light
-		sensors.light = getLux(sensorLight);
-		if ( (0 <= sensors.light) && (sensors.light != before.light) )
+		if (0 == getLux(sensorLight, &sensors.light))
 		{
-			char messageJson[100];
-			sprintf(messageJson, "{ \"light\": %d }", sensors.light);
-			publishSensorData(TOPICLIGHT, messageJson);
-			before.light = sensors.light;
+			status.light = 1;
+			if ( (0 <= sensors.light) && (sensors.light != before.light) )
+			{
+				char messageJson[100];
+				sprintf(messageJson, "{ \"light\": %d }", sensors.light);
+				publishSensorData(TOPICLIGHT, messageJson);
+				before.light = sensors.light;
+			}
+		}
+		else
+		{
+			status.light = 0;
 		}
 
 		sleep(1);
