@@ -175,7 +175,6 @@ int main(int argc, char* argv[])
 	}
 	printf("Machine ID: %s\n", machineId);
 
-	configuration config;
 	if (0 > ini_parse(CONFIGFILE, iniConfigParser, &config))
 	{
 		printf("ERROR: Cannot open '%s'. Loading default configrations...\n", CONFIGFILE);
@@ -192,21 +191,15 @@ int main(int argc, char* argv[])
 	// 0 if the sensor is not available, 1 if it is available
 	initSensorsData(status);
 
-	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-
-	MQTTClient_create(&client, config.address, config.clientId,
-	MQTTCLIENT_PERSISTENCE_NONE, NULL);
-	conn_opts.keepAliveInterval = 20;
-	conn_opts.cleansession = 1;
-
 	MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
 
-	int mqttConnect = MQTTClient_connect(client, &conn_opts);
-	if (MQTTCLIENT_SUCCESS != mqttConnect)
+	if (MQTTCLIENT_SUCCESS != mqttConnect())
 	{
-		printf("Failed to connect, return code %d\n", mqttConnect);
+		printf("ERROR: Failed to connect to MQTT broker.\n");
 		exit(EXIT_FAILURE);
 	}
+
+	MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
 
 	wiringPiSetup();
 

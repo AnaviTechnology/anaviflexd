@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "connectivity.h"
 
 /**
@@ -52,8 +54,14 @@ int msgarrvd(void* context, char* topicName, int topicLen, MQTTClient_message* m
  */
 void connlost(void *context, char *cause)
 {
-	printf("\nConnection lost\n");
-	printf("cause: %s\n", cause);
+	printf("\nERROR: Connection lost.\n");
+	// Try to reconnect
+	while (MQTTCLIENT_SUCCESS != mqttConnect())
+	{
+		printf("Trying to reconnect in 10 seconds...\n");
+		sleep(10);
+	}
+	printf("Successfully reconnected to MQTT broker\n");
 }
 //------------------------------------------------------------------------------
 
@@ -116,5 +124,23 @@ void mqttDisconnect()
 {
 	MQTTClient_disconnect(client, 10000);
 	MQTTClient_destroy(&client);
+}
+//------------------------------------------------------------------------------
+
+/**
+ * Connect the MQTT broker
+ *
+ * @return MQTTCLIENT_SUCCESS if the client successfully connects to the server; Positive value on error
+ */
+int mqttConnect()
+{
+        MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+
+        MQTTClient_create(&client, config.address, config.clientId,
+        MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        conn_opts.keepAliveInterval = 20;
+        conn_opts.cleansession = 1;
+
+        return MQTTClient_connect(client, &conn_opts);
 }
 //------------------------------------------------------------------------------

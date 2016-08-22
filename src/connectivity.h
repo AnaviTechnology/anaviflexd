@@ -7,6 +7,7 @@
 
 #include "json.h"
 #include "machineId.h"
+#include "configuration.h"
 
 volatile MQTTClient_deliveryToken deliveredtoken;
 
@@ -68,5 +69,12 @@ void publishSensorData(char* topic, char* json);
  *
  */
 void mqttDisconnect();
+
+/**
+ * Connect the MQTT broker
+ *
+ * @return MQTTCLIENT_SUCCESS if the client successfully connects to the server; Positive value on error
+ */
+int mqttConnect();
 
 #endif

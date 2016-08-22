@@ -9,6 +9,8 @@ typedef struct
 	const char* clientId;
 } configuration;
 
+configuration config;
+
 /**
  * Parse INI configuration
  *
