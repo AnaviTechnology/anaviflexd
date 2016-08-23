@@ -327,8 +327,6 @@ int main(int argc, char* argv[])
 
 		sleep(1);
 	}
-	MQTTClient_disconnect(client, 10000);
-	MQTTClient_destroy(&client);
 	return 0;
 }
 //------------------------------------------------------------------------------

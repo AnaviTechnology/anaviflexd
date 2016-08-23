@@ -61,6 +61,8 @@ void connlost(void *context, char *cause)
 		printf("Trying to reconnect in 10 seconds...\n");
 		sleep(10);
 	}
+	// Register again callbacks
+	MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
 	printf("Successfully reconnected to MQTT broker\n");
 }
 //------------------------------------------------------------------------------
@@ -134,6 +136,10 @@ void mqttDisconnect()
  */
 int mqttConnect()
 {
+	// Free the memory allocated to the MQTT client
+	MQTTClient_destroy(&client);
+
+	// Try to establish connection to MQTT broker
         MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 
         MQTTClient_create(&client, config.address, config.clientId,
