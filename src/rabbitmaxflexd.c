@@ -191,15 +191,15 @@ int main(int argc, char* argv[])
 	// 0 if the sensor is not available, 1 if it is available
 	initSensorsData(status);
 
-	MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
-
 	if (MQTTCLIENT_SUCCESS != mqttConnect())
 	{
 		printf("ERROR: Failed to connect to MQTT broker.\n");
 		exit(EXIT_FAILURE);
 	}
 
-	MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
+	// Subscribe to topics for switching on/off the relay, the buzzer
+	// and changing the state of the RGB LED
+	mqttSubscribe();
 
 	wiringPiSetup();
 

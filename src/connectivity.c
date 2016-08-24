@@ -61,9 +61,32 @@ void connlost(void *context, char *cause)
 		printf("Trying to reconnect in 10 seconds...\n");
 		sleep(10);
 	}
-	// Register again callbacks
-	MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
+	// Subscribe again
+	mqttSubscribe();
 	printf("Successfully reconnected to MQTT broker\n");
+}
+//------------------------------------------------------------------------------
+
+/**
+ * Allocate MQTT topic combined from machine ID and suffix
+ *
+ * @param suffix suffix with additional levels for the MQTT topic
+ *
+ * @return MQTT topic
+ */
+char* createMqttTopic(char* suffix)
+{
+	// Make space for the machine id, slash and the topic
+	size_t lenMachine = strlen(machineId);
+	size_t lenTopic = strlen(suffix);
+	char *mqttTopic = (char*) malloc(lenMachine + 3 + lenTopic);
+	// MQTT topic's 1st level is the machine ID
+	memcpy(mqttTopic, machineId, lenMachine);
+	// Separate levels
+	memcpy(mqttTopic+lenMachine, "/", 2);
+	// Add next levels in MQTT topic
+	memcpy(mqttTopic+lenMachine+1, suffix, lenTopic+1);
+	return mqttTopic;
 }
 //------------------------------------------------------------------------------
 
@@ -78,16 +101,7 @@ void connlost(void *context, char *cause)
  */
 void publish(char* topic, char* message, int qos, int retain)
 {
-	// Make space for the machine id, slash and the topic
-	size_t lenMachine = strlen(machineId);
-	size_t lenTopic = strlen(topic);
-	char *mqttTopic = (char*) malloc(lenMachine + 3 + lenTopic);
-	// MQTT topic's 1st level is the machine ID
-	memcpy(mqttTopic, machineId, lenMachine);
-	// Separate levels
-	memcpy(mqttTopic+lenMachine, "/", 2);
-	// Add next levels in MQTT topic
-	memcpy(mqttTopic+lenMachine+1, topic, lenTopic+1);
+	char *mqttTopic = createMqttTopic(topic);
 
 	MQTTClient_message pubmsg = MQTTClient_message_initializer;
 	pubmsg.payload = message;
@@ -147,6 +161,30 @@ int mqttConnect()
         conn_opts.keepAliveInterval = 20;
         conn_opts.cleansession = 1;
 
+	// Register again callbacks
+	MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
+
         return MQTTClient_connect(client, &conn_opts);
+}
+//------------------------------------------------------------------------------
+
+/**
+ * Subscribe to MQTT topics
+ *
+ */
+void mqttSubscribe()
+{
+	//char *mqttTopic = createMqttTopic(TOPICACTIONS);
+	//int status = MQTTClient_subscribe(client, mqttTopic, 1);
+	int status = MQTTClient_subscribe(client, TOPICACTIONS, 0);
+	if (MQTTCLIENT_SUCCESS == status)
+	{
+		printf("Subscribed to topic: %s\n", TOPICACTIONS);//mqttTopic);
+	}
+	else
+	{
+		printf("ERROR: Unable to subscribe to MQTT broker %d\n", status);
+	}
+	//free(mqttTopic);
 }
 //------------------------------------------------------------------------------

@@ -9,6 +9,8 @@
 #include "machineId.h"
 #include "configuration.h"
 
+#define TOPICACTIONS "action/#"
+
 volatile MQTTClient_deliveryToken deliveredtoken;
 
 volatile int lcdHandle;
@@ -76,5 +78,11 @@ void mqttDisconnect();
  * @return MQTTCLIENT_SUCCESS if the client successfully connects to the server; Positive value on error
  */
 int mqttConnect();
+
+/**
+ * Subscribe to MQTT topics
+ *
+ */
+void mqttSubscribe();
 
 #endif
