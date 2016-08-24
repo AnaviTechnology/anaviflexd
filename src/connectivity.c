@@ -174,17 +174,16 @@ int mqttConnect()
  */
 void mqttSubscribe()
 {
-	//char *mqttTopic = createMqttTopic(TOPICACTIONS);
-	//int status = MQTTClient_subscribe(client, mqttTopic, 1);
-	int status = MQTTClient_subscribe(client, TOPICACTIONS, 0);
+	char *mqttTopic = createMqttTopic(TOPICACTIONS);
+	int status = MQTTClient_subscribe(client, mqttTopic, 2);
 	if (MQTTCLIENT_SUCCESS == status)
 	{
-		printf("Subscribed to topic: %s\n", TOPICACTIONS);//mqttTopic);
+		printf("Subscribed to topic: %s\n", mqttTopic);
 	}
 	else
 	{
 		printf("ERROR: Unable to subscribe to MQTT broker %d\n", status);
 	}
-	//free(mqttTopic);
+	free(mqttTopic);
 }
 //------------------------------------------------------------------------------
