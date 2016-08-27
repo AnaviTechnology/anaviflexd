@@ -39,6 +39,26 @@ int msgarrvd(void* context, char* topicName, int topicLen, MQTTClient_message* m
 	printf("topic: %s\n", topicName);
 	printf("message: %s\n", payload);
 
+	// Parse MQTT levels
+	char* level = strtok(topicName ,"//");
+	char** levels = NULL;
+	int counter = 0;
+	while (NULL != level)
+	{
+		levels = realloc(levels, (counter+1)*sizeof(char*));
+		levels[counter] = level;
+		counter++;
+		level = strtok(NULL, "//");
+	}
+
+	// Print MQTT topic levels
+	for (int index=0; index < counter; index++)
+	{
+		printf ("Topic level %d: %s\n", index, levels[index]);
+	}
+
+	// Free memory
+	free(levels);
 	MQTTClient_freeMessage(&message);
 	MQTTClient_free(topicName);
 	free(payload);
