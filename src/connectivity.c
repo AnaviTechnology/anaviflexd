@@ -27,21 +27,21 @@ void delivered(void* context, MQTTClient_deliveryToken dt)
  */
 int msgarrvd(void* context, char* topicName, int topicLen, MQTTClient_message* message)
 {
-	int i;
-	char* payloadptr;
+	// Get the message
+	char* payload = (char*) malloc(message->payloadlen+1);
+	for(int index=0; index<message->payloadlen; index++)
+	{
+		payload[index] = ((char *) message->payload)[index];
+	}
+	payload[message->payloadlen] = 0;
 
 	printf("Message arrived\n");
 	printf("topic: %s\n", topicName);
-	printf("message: ");
+	printf("message: %s\n", payload);
 
-	payloadptr = message->payload;
-	for(i=0; i<message->payloadlen; i++)
-	{
-		putchar(*payloadptr++);
-	}
-	putchar('\n');
 	MQTTClient_freeMessage(&message);
 	MQTTClient_free(topicName);
+	free(payload);
 	return 1;
 }
 //------------------------------------------------------------------------------
