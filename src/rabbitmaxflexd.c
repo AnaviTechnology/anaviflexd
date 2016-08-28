@@ -10,6 +10,7 @@
 #include<pthread.h>
 #include <lcd.h>
 
+#include "global.h"
 #include "BMP180.h"
 #include "HTU21D.h"
 #include "BH1750.h"
@@ -18,30 +19,6 @@
 #include "machineId.h"
 #include "connectivity.h"
 #include "configuration.h"
-
-#define CONFIGFILE 	"/etc/rabbitmaxflex.ini"
-
-// Default configuratons:
-#define ADDRESS		"tcp://iot.eclipse.org:1883"
-#define CLIENTID	"RabbitMaxClient"
-
-#define TOPICTEMPERATURE "sensors/temperature"
-#define TOPICPRESSURE "sensors/pressure"
-#define TOPICTEMPERATURE1 "sensors/temperature1"
-#define TOPICHUMIDITY "sensors/humidity"
-#define TOPICLIGHT "sensors/light"
-
-#define MSGNOSENSOR "Sensor not found"
-
-pthread_t tid;
-
-struct sensors {
-	double temperature;
-	double humidity;
-	double temperature1;
-	double pressure;
-	int light;
-} sensors, status;
 
 /**
  * Calculate delta (aka difference) between an old and new data
@@ -64,7 +41,10 @@ double delta(double before, double after)
  */
 void shutDownDaemon()
 {
-	pthread_kill(tid, 0);
+	for(int thread=0; thread<2; thread++)
+	{
+		pthread_kill(tid[thread], 0);
+	}
 
 	lcdShowURL(lcdHandle);
 	mqttDisconnect();
@@ -75,12 +55,39 @@ void shutDownDaemon()
 }
 //------------------------------------------------------------------------------
 
+/**
+ * Initialize sensor data
+ *
+ * @param data data to be initialized
+ */
 void initSensorsData(struct sensors data)
 {
 	data.temperature = 0;
 	data.pressure = 0;
 	data.humidity = 0;
 	data.light = 0;
+	data.buzzer = 0;
+}
+//------------------------------------------------------------------------------
+
+/**
+ * Loop to control the buzzer and to play sound for an alarm if it is enabled
+ *
+ */
+void* controlBuzzer(void *arg)
+{
+	while(1)
+	{
+		if ( 0 == status.buzzer)
+		{
+			continue;
+		}
+		// Beep
+		digitalWrite(PINBUZZER, LOW);
+		delay(2);
+		digitalWrite(PINBUZZER, HIGH);
+		delay(1);
+	}
 }
 //------------------------------------------------------------------------------
 
@@ -203,9 +210,13 @@ int main(int argc, char* argv[])
 
 	wiringPiSetup();
 
-	if (0 != pthread_create(&(tid), NULL, &controlScreen, NULL))
+	if (0 != pthread_create(&(tid[0]), NULL, &controlScreen, NULL))
 	{
 		printf("ERROR: Unable to create thread for handling LCD display.\n");
+	}
+	if (0 != pthread_create(&(tid[1]), NULL, &controlBuzzer, NULL))
+	{
+		printf("ERROR: Unable to create thread for handling the buzzer.\n");
 	}
 
 	int sensorTemperature = wiringPiI2CSetup(BMP180_I2CADDR);

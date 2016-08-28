@@ -1,5 +1,7 @@
 #include <unistd.h>
+#include <wiringPi.h>
 
+#include "global.h"
 #include "connectivity.h"
 
 /**
@@ -12,6 +14,39 @@ void delivered(void* context, MQTTClient_deliveryToken dt)
 {
 	printf("Message with token %d delivered.\n", dt);
 	deliveredtoken = dt;
+}
+//------------------------------------------------------------------------------
+
+/**
+ * Get status from JSON
+ *
+ * @param json JSON
+ * @param element name of the element in the JSON
+ *
+ * @return 0 for disabled, 1 for enabled
+ */
+int getStatus(JsonNode* json, const char* element)
+{
+	JsonNode *m;
+	int status = 0;
+	if ((m = json_find_member(json, element)) == NULL)
+	{
+		return status;
+	}
+
+	if (m && m->tag == JSON_STRING)
+	{
+		status = atof(m->string_);
+	}
+	else if ((m && m->tag == JSON_BOOL))
+	{
+		status = (int) m->bool_;
+	}
+	else if (m && m->tag == JSON_NUMBER)
+	{
+		status = m->number_;
+	}
+	return (1 <= status) ? 1 : 0;
 }
 //------------------------------------------------------------------------------
 
@@ -55,7 +90,22 @@ int msgarrvd(void* context, char* topicName, int topicLen, MQTTClient_message* m
 	{
 		if (0 == strcmp(levels[2], TOPICBUZZER))
 		{
-			printf("buzzer\n");
+			// parse json
+			JsonNode* node = json_decode(payload);
+			char errmsg[256];
+			if (NULL == node)
+			{
+				printf("Invalid JSON\n");
+			}
+
+			if (!json_check(node, errmsg))
+			{
+				printf("Corrupted JSON: %s\n", errmsg);
+			}
+
+			status.buzzer = getStatus(node, "status");
+
+			free(node);
 		}
 	}
 
