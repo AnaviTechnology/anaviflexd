@@ -27,24 +27,24 @@ void delivered(void* context, MQTTClient_deliveryToken dt)
  */
 int getStatus(JsonNode* json, const char* element)
 {
-	JsonNode *m;
 	int status = 0;
-	if ((m = json_find_member(json, element)) == NULL)
+	JsonNode* member = json_find_member(json, element);
+	if (NULL == member)
 	{
 		return status;
 	}
 
-	if (m && m->tag == JSON_STRING)
+	if (member->tag == JSON_STRING)
 	{
-		status = atof(m->string_);
+		status = atof(member->string_);
 	}
-	else if ((m && m->tag == JSON_BOOL))
+	else if (member->tag == JSON_BOOL)
 	{
-		status = (int) m->bool_;
+		status = (int) member->bool_;
 	}
-	else if (m && m->tag == JSON_NUMBER)
+	else if (member->tag == JSON_NUMBER)
 	{
-		status = m->number_;
+		status = member->number_;
 	}
 	return (1 <= status) ? 1 : 0;
 }
@@ -146,7 +146,7 @@ int msgarrvd(void* context, char* topicName, int topicLen, MQTTClient_message* m
 				printf("LED red: %d, green: %d, blue: %d\n", red, green, blue);
 			}
 		}
-		free(node);
+		json_delete(node);
 	}
 
 	// Free memory
