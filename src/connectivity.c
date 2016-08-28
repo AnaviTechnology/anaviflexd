@@ -51,10 +51,12 @@ int msgarrvd(void* context, char* topicName, int topicLen, MQTTClient_message* m
 		level = strtok(NULL, "//");
 	}
 
-	// Print MQTT topic levels
-	for (int index=0; index < counter; index++)
+	if ( (2 <= counter) && (0 == strcmp(levels[1], TOPICACTION)) )
 	{
-		printf ("Topic level %d: %s\n", index, levels[index]);
+		if (0 == strcmp(levels[2], TOPICBUZZER))
+		{
+			printf("buzzer\n");
+		}
 	}
 
 	// Free memory

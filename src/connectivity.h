@@ -11,6 +11,9 @@
 
 #define TOPICACTIONS "action/#"
 
+#define TOPICACTION "action"
+#define TOPICBUZZER "buzzer"
+
 volatile MQTTClient_deliveryToken deliveredtoken;
 
 volatile int lcdHandle;
