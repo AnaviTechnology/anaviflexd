@@ -114,16 +114,28 @@ int msgarrvd(void* context, char* topicName, int topicLen, MQTTClient_message* m
 
 	if ( (2 <= counter) && (0 == strcmp(levels[1], TOPICACTION)) )
 	{
-		if (0 == strcmp(levels[2], TOPICBUZZER))
+		// Detect action and parse JSON from the payload
+		JsonNode* node = json_decode(payload);
+		if (0 == isJsonValid(node))
 		{
-			// Parse JSON
-			JsonNode* node = json_decode(payload);
-			if (0 == isJsonValid(node))
+			if (0 == strcmp(levels[2], TOPICBUZZER))
 			{
 				status.buzzer = getStatus(node, "status");
 			}
-			free(node);
+			else if (0 == strcmp(levels[2], TOPICRELAY))
+			{
+				status.relay = getStatus(node, "status");
+				if (1 == status.relay)
+				{
+					digitalWrite(PINRELAY, HIGH);
+				}
+				else
+				{
+					digitalWrite(PINRELAY, LOW);
+				}
+			}
 		}
+		free(node);
 	}
 
 	// Free memory

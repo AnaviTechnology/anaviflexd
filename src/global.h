@@ -1,11 +1,16 @@
 #include <pthread.h>
+#include <MQTTClient.h>
 
+// Configuration file
 #define CONFIGFILE 		"/etc/rabbitmaxflex.ini"
 
-// Default configuratons:
+// Default configuratons
 #define ADDRESS			"tcp://iot.eclipse.org:1883"
 #define CLIENTID		"RabbitMaxClient"
 
+// MQTT topics
+
+// For sensors
 #define TOPICTEMPERATURE 	"sensors/temperature"
 #define TOPICPRESSURE 		"sensors/pressure"
 #define TOPICTEMPERATURE1 	"sensors/temperature1"
@@ -14,8 +19,19 @@
 
 #define MSGNOSENSOR 		"Sensor not found"
 
+// For actions
+#define TOPICACTIONS 		"action/#"
+
+#define TOPICACTION 		"action"
+#define TOPICBUZZER 		"buzzer"
+#define TOPICRELAY  		"relay"
+
+// GPIO
+
+//Pin 29 on Raspberry Pi corresponds to BCM GPIO 5 and wiringPi pin 21
+#define PINRELAY		21
 //Pin 31 on Raspberry Pi corresponds to BCM GPIO 6 and wiringPi pin 22
-#define PINBUZZER 22
+#define PINBUZZER 		22
 
 pthread_t tid[2];
 
@@ -26,4 +42,12 @@ struct sensors {
 	double pressure;
 	int light;
 	int buzzer;
+	int relay;
 } sensors, status;
+
+volatile MQTTClient_deliveryToken deliveredtoken;
+
+volatile int lcdHandle;
+
+MQTTClient client;
+MQTTClient_deliveryToken token;

@@ -209,6 +209,9 @@ int main(int argc, char* argv[])
 	mqttSubscribe();
 
 	wiringPiSetup();
+	// Set GPIO modes
+	pinMode(PINRELAY, OUTPUT);
+	pinMode(PINBUZZER, OUTPUT);
 
 	if (0 != pthread_create(&(tid[0]), NULL, &controlScreen, NULL))
 	{

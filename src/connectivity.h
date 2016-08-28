@@ -9,18 +9,6 @@
 #include "machineId.h"
 #include "configuration.h"
 
-#define TOPICACTIONS "action/#"
-
-#define TOPICACTION "action"
-#define TOPICBUZZER "buzzer"
-
-volatile MQTTClient_deliveryToken deliveredtoken;
-
-volatile int lcdHandle;
-
-MQTTClient client;
-MQTTClient_deliveryToken token;
-
 /**
  * Callback for delivered MQTT message
  *
