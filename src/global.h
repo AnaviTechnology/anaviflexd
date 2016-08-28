@@ -24,7 +24,8 @@
 
 #define TOPICACTION 		"action"
 #define TOPICBUZZER 		"buzzer"
-#define TOPICRELAY  		"relay"
+#define TOPICRELAY		"relay"
+#define TOPICRGBLED		"rgbled"
 
 // GPIO
 
@@ -32,6 +33,12 @@
 #define PINRELAY		21
 //Pin 31 on Raspberry Pi corresponds to BCM GPIO 6 and wiringPi pin 22
 #define PINBUZZER 		22
+//Pin 33 on Raspberry Pi corresponds to BCM GPIO 13 and wiringPi pin 23 for blue
+#define PINRGBLED1 		23
+//Pin 35 on Raspberry Pi corresponds to BCM GPIO 19 and wiringPi pin 24 for green
+#define PINRGBLED2 		24
+//Pin 37 on Raspberry Pi corresponds to BCM GPIO 26 and wiringPi pin 25 for red
+#define PINRGBLED3 		25
 
 pthread_t tid[2];
 
@@ -43,6 +50,7 @@ struct sensors {
 	int light;
 	int buzzer;
 	int relay;
+	int rgbLed;
 } sensors, status;
 
 volatile MQTTClient_deliveryToken deliveredtoken;

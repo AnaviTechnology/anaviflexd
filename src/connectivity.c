@@ -134,6 +134,17 @@ int msgarrvd(void* context, char* topicName, int topicLen, MQTTClient_message* m
 					digitalWrite(PINRELAY, LOW);
 				}
 			}
+			else if (0 == strcmp(levels[2], TOPICRGBLED))
+			{
+				int red = (1 == getStatus(node, "red")) ? HIGH : LOW;
+				digitalWrite(PINRGBLED3, red);
+				int green = (1 == getStatus(node, "green")) ? HIGH : LOW;
+				digitalWrite(PINRGBLED2, green);
+				int blue = (1 == getStatus(node, "blue")) ? HIGH : LOW;
+				digitalWrite(PINRGBLED1, blue);
+				status.rgbLed = ( (HIGH == red) && (HIGH == green) && (HIGH == blue) ) ? 0 : 1;
+				printf("LED red: %d, green: %d, blue: %d\n", red, green, blue);
+			}
 		}
 		free(node);
 	}

@@ -67,6 +67,8 @@ void initSensorsData(struct sensors data)
 	data.humidity = 0;
 	data.light = 0;
 	data.buzzer = 0;
+	data.relay = 0;
+	data.rgbLed = 0;
 }
 //------------------------------------------------------------------------------
 
@@ -212,6 +214,9 @@ int main(int argc, char* argv[])
 	// Set GPIO modes
 	pinMode(PINRELAY, OUTPUT);
 	pinMode(PINBUZZER, OUTPUT);
+	pinMode(PINRGBLED1, OUTPUT);
+	pinMode(PINRGBLED2, OUTPUT);
+	pinMode(PINRGBLED3, OUTPUT);
 
 	if (0 != pthread_create(&(tid[0]), NULL, &controlScreen, NULL))
 	{
