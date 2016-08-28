@@ -51,6 +51,32 @@ int getStatus(JsonNode* json, const char* element)
 //------------------------------------------------------------------------------
 
 /**
+ * Is JSON valid?
+ *
+ * @param node JSON
+ *
+ * @return 0 if JSON is valid or positive value on error
+ */
+int isJsonValid(JsonNode* node)
+{
+	if (NULL == node)
+	{
+		printf("ERROR: Invalid JSON\n");
+		return 1;
+	}
+
+	char errmsg[256];
+	if (!json_check(node, errmsg))
+	{
+		printf("ERROR: Corrupted JSON: %s\n", errmsg);
+		return 2;
+	}
+
+	return 0;
+}
+//------------------------------------------------------------------------------
+
+/**
  * Callback for receiving MQTT message
  *
  * @param context context
@@ -90,21 +116,12 @@ int msgarrvd(void* context, char* topicName, int topicLen, MQTTClient_message* m
 	{
 		if (0 == strcmp(levels[2], TOPICBUZZER))
 		{
-			// parse json
+			// Parse JSON
 			JsonNode* node = json_decode(payload);
-			char errmsg[256];
-			if (NULL == node)
+			if (0 == isJsonValid(node))
 			{
-				printf("Invalid JSON\n");
+				status.buzzer = getStatus(node, "status");
 			}
-
-			if (!json_check(node, errmsg))
-			{
-				printf("Corrupted JSON: %s\n", errmsg);
-			}
-
-			status.buzzer = getStatus(node, "status");
-
 			free(node);
 		}
 	}
