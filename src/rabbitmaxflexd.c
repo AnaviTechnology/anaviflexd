@@ -41,7 +41,7 @@ double delta(double before, double after)
  */
 void shutDownDaemon()
 {
-	for(int thread=0; thread<2; thread++)
+	for(int thread=0; thread<3; thread++)
 	{
 		pthread_kill(tid[thread], 0);
 	}
@@ -49,7 +49,7 @@ void shutDownDaemon()
 	lcdShowURL(lcdHandle);
 	mqttDisconnect();
 
-	// Turn off all GPIO
+	// Turn off all GPIO in output mode
 	digitalWrite(PINBUZZER, LOW);
 	digitalWrite(PINRELAY, LOW);
 	digitalWrite(PINRGBLED1, LOW);
@@ -80,6 +80,28 @@ void initSensorsData(struct sensors data)
 //------------------------------------------------------------------------------
 
 /**
+ * Loop to control the button
+ *
+ */
+void* controlButton(void *arg)
+{
+	int buf = HIGH;
+	while(1)
+	{
+		int button = digitalRead(PINBUTTON);
+		if ( (HIGH == button) && (LOW == buf) )
+		{
+			//Turn off buzzer
+			status.buzzer = 0;
+			printf("Button pressed. Turning off the buzzer...\n");
+		}
+		buf = button;
+		sleep(1);
+	}
+}
+//------------------------------------------------------------------------------
+
+/**
  * Loop to control the buzzer and to play sound for an alarm if it is enabled
  *
  */
@@ -87,7 +109,7 @@ void* controlBuzzer(void *arg)
 {
 	while(1)
 	{
-		if ( 0 == status.buzzer)
+		if (0 == status.buzzer)
 		{
 			continue;
 		}
@@ -224,6 +246,8 @@ int main(int argc, char* argv[])
 	pinMode(PINRGBLED1, OUTPUT);
 	pinMode(PINRGBLED2, OUTPUT);
 	pinMode(PINRGBLED3, OUTPUT);
+	pinMode(PINBUTTON, INPUT);
+	pullUpDnControl(PINBUTTON, PUD_UP);
 
 	if (0 != pthread_create(&(tid[0]), NULL, &controlScreen, NULL))
 	{
@@ -232,6 +256,10 @@ int main(int argc, char* argv[])
 	if (0 != pthread_create(&(tid[1]), NULL, &controlBuzzer, NULL))
 	{
 		printf("ERROR: Unable to create thread for handling the buzzer.\n");
+	}
+	if (0 != pthread_create(&(tid[2]), NULL, &controlButton, NULL))
+	{
+		printf("ERROR: Unable to create thread for handling the button.\n");
 	}
 
 	int sensorTemperature = wiringPiI2CSetup(BMP180_I2CADDR);

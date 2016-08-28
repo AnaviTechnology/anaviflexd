@@ -29,6 +29,8 @@
 
 // GPIO
 
+//Pin 23 on Raspberry Pi corresponds to BCM GPIO 11 and wiringPi pin 14
+#define PINBUTTON		14
 //Pin 29 on Raspberry Pi corresponds to BCM GPIO 5 and wiringPi pin 21
 #define PINRELAY		21
 //Pin 31 on Raspberry Pi corresponds to BCM GPIO 6 and wiringPi pin 22
@@ -40,7 +42,7 @@
 //Pin 37 on Raspberry Pi corresponds to BCM GPIO 26 and wiringPi pin 25 for red
 #define PINRGBLED3 		25
 
-pthread_t tid[2];
+pthread_t tid[3];
 
 struct sensors {
 	double temperature;
