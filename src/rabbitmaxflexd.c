@@ -49,6 +49,13 @@ void shutDownDaemon()
 	lcdShowURL(lcdHandle);
 	mqttDisconnect();
 
+	// Turn off all GPIO
+	digitalWrite(PINBUZZER, LOW);
+	digitalWrite(PINRELAY, LOW);
+	digitalWrite(PINRGBLED1, LOW);
+	digitalWrite(PINRGBLED2, LOW);
+	digitalWrite(PINRGBLED3, LOW);
+
 	printf("\nShutting down the MQTT client...\n");
 
 	exit(0);
